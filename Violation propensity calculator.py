@@ -3,18 +3,43 @@
 from math import *
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 ##binomial coefficient function
 def binom(n,k) :
-    if k>n or n<0 :
+    if k > n or n < 0:
         return 1
     return int(factorial(n)/factorial(k)/factorial(n-k))
 
 
 ##probability that a=k, b=l, a'=m and b'=j under a parametrization of stochatsic environment + agent preferences
 def p(tau,n,pa,pb,k,l,m,j) :
-    return binom(tau,k)*binom(tau,l)*binom(n,m-k)*binom(n,j-l)*pa**m*(1-pa)**(tau+n-m)*pb**j*(1-pb)**(tau+n-j)
+    return (binom(tau,k)*binom(tau,l)*binom(n,m-k)*binom(n,j-l))*(pa**m*(1-pa)**(tau+n-m)*pb**j*(1-pb)**(tau+n-j))
 
+##tensor of probabilities done the old but safe way
+def Ptest(tau,n,pa,pb) :
+    result = np.zeros((tau + 1, tau + 1, n + 1, n + 1))
+    for k in range(tau + 1):
+        for l in range(tau + 1):
+            for kk in range(n + 1):
+                for ll in range(n + 1):
+                    result[k, l, kk, ll] = p(tau, n, 0.55, 0.45, k, l, k + kk, l + ll)
+    return result
+
+##tensor of probabilities with numpy and brains, still partly unexplained
+def P(tau,n,pa,pb) :  ##CAUTION indices kk and ll are ups between tau and tau', they correspond to m-k and j-l
+    k = np.arange(tau+1)
+    kk = np.arange(n+1)
+    L, K, KK, LL = np.meshgrid(k, k, kk, kk)   ##UNEXPLAINED : when meshing into a dimension>2, the first 2 indices appear to be switched
+    result = np.ones((tau+1,tau+1,n+1,n+1))
+    for i in k[1:] :
+        result[i,:,:,:] = (result[i-1,:,:,:]*(tau-i+1))/i
+        result[:,i,:,:] = (result[:,i-1,:,:]*(tau-i+1))/i
+    for i in kk[1:] :
+        result[:,:,i,:] = (result[:,:,i-1,:]*(n-i+1))/i
+        result[:,:,:,i] = (result[:,:,:,i-1]*(n-i+1))/i
+    result = result * (pa ** (K + KK) * (1 - pa) ** (tau + n - K - KK) * pb ** (L + LL) * (1 - pb) ** (tau + n - L - LL))
+    return result
 
 ##calculation steps to get to the benchmark disposition measure
 def NPGR (tau,n,g,ph,pl,theta) :
@@ -38,7 +63,6 @@ def DPGR (tau,n,g,ph,pl,theta) :
 def PGR(tau,n,g,ph,pl,theta) :
     return NPGR(tau,n,g,ph,pl,theta)/DPGR(tau,n,g,ph,pl,theta)
 
-
 def NPLR (tau,n,g,ph,pl,theta) :
     sum = 0
     for k in range(theta,tau+1) :
@@ -59,7 +83,6 @@ def DPLR (tau,n,g,ph,pl,theta) :
 
 def PLR(tau,n,g,ph,pl,theta) :
     return NPLR(tau,n,g,ph,pl,theta)/DPLR(tau,n,g,ph,pl,theta)
-
 
 ##benchmark disposition measures under a parametrization of stochatsic environment + agent preferences
 def DM(tau,n,g,ph,pl,theta) :
@@ -103,8 +126,6 @@ def PGV_KQ(tau,n,g,ph,pl,theta) :
                 for j in range(max(m+theta,l),l+n+1) :  ##the benchmark investor switches for delta' <= -theta
                     sum += p(tau,n,ph,pl,k,l,m,j)+p(tau,n,pl,ph,k,l,m,j)
     return sum/DPGR(tau,n,g,ph,pl,theta)
-
-
 
 
 def PLV_SQ(tau,n,g,ph,pl,theta) :
@@ -152,17 +173,13 @@ def PLV(tau,n,g,ph,pl,theta) :
     return PLV_KQ(tau,n,g,ph,pl,theta),PLV_KS(tau,n,g,ph,pl,theta),PLV_SK(tau,n,g,ph,pl,theta),PLV_SQ(tau,n,g,ph,pl,theta)
 
 
-
 ##some tests
 def check(tau,n,g,ph,pl,theta) :
     return PGR(tau,n,g,ph,pl,theta)+PGV(tau,n,g,ph,pl,theta)[3]-1 , PLR(tau,n,g,ph,pl,theta)+PLV(tau,n,g,ph,pl,theta)[3]-1 , PGV(tau,n,g,ph,pl,theta)[0]+PGV(tau,n,g,ph,pl,theta)[1]+PGV(tau,n,g,ph,pl,theta)[2]-PGR(tau,n,g,ph,pl,theta) , PLV(tau,n,g,ph,pl,theta)[0]+PLV(tau,n,g,ph,pl,theta)[1]+PLV(tau,n,g,ph,pl,theta)[2]-PLR(tau,n,g,ph,pl,theta)
 
 
 
-
-
 ##Violation propensity calculations
-
 
 
 ##relative wealth variation after t time increments with i price increases
@@ -190,15 +207,14 @@ def E(L,p) :
 
 ##3.1.1 PT with status-quo reference point (SQPT)
 ##utility is (x-w)^beta for x>=w and -lam(w-x)^beta otherwise
+
 def v(y,beta,lam) :
     if y>=0 : return y**beta
     return -lam*(-y)**beta
 
-
 ##Q^AO_tau, the analytical formula is -E[v(e_l)]/(E[v(e_h)-E[v(e_l)]) with e_h and e_l the random variables representing gains from the high and low process respectively
 def QAOtau_SQPT(beta,lam,n,ph,pl,u,d) :
     return -E([v(wealth(n,u,d,i)-1,beta,lam) for i in range(n+1)] , pl) / ( E([v(wealth(n,u,d,i)-1,beta,lam) for i in range(n+1)] , ph) - E([v(wealth(n,u,d,i)-1,beta,lam) for i in range(n+1)] , pl) )
-
 
 ##Q^AO_tau' with k price increases at time tau and m at time tau'
 def QAOtauP_SQPT(beta,lam,n,ph,pl,u,d,w,c) :
@@ -250,7 +266,6 @@ def sKSG_SQPT(beta,lam,tau,n,ph,pl,u,d) :
     if denominator == 0 : return 'not defined'
     return numerator/denominator
 
-
 def lSQG_SQPT(beta,lam,tau,n,ph,pl,u,d) :
     g = g_get(n,u,d)
     theta = thetify(QAOtau_SQPT(beta,lam,n,ph,pl,u,d),ph,pl)
@@ -285,7 +300,6 @@ def lKQG_SQPT(beta,lam,tau,n,ph,pl,u,d) :
                     denominator += p(tau,n,ph,pl,k,l,m,j)+p(tau,n,pl,ph,k,l,m,j)
     if denominator == 0 : return 'not defined'
     return numerator/denominator
-
 
 def kSKL_SQPT(beta,lam,tau,n,ph,pl,u,d) :
     g = g_get(n,u,d)
@@ -410,7 +424,6 @@ def variations(beta,lam,n,ph,pl,u,d,*args) : ##add 2 empty lists to keep the val
         c += dc
     return signs,slopes
 
-
 def draw(beta,lam_list,n,ph,pl,u,d) :
     N = len(lam_list)
     cmap = plt.get_cmap('inferno_r')
@@ -444,7 +457,6 @@ def draw(beta,lam_list,n,ph,pl,u,d) :
 
 ##instruction for plotting QAOtau'(c) with lambda from 1 to 10, or with lqmbda=2.5
 #draw(1,[1/5*i for i in range(5,10*5)],4,0.55,0.45,1.3,0.8)
-
 #draw(1,[2.5],4,0.55,0.45,1.3,0.8)
 
 
@@ -480,3 +492,18 @@ def f(beta,lam,tau,n,ph,pl,u,d,w,r) :
     return pO,O,theta
 
 
+
+
+
+
+
+tau, n = 2, 4
+
+t0=time.time()
+PPref = P
+
+t=time.time()
+PP=P(tau,n,0.55,0.45)
+#print(t-t0, time.time()-t)
+
+print(PP==Ptest)
