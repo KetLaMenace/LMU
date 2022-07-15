@@ -6,11 +6,11 @@ n = 4
 ph = .55
 pl = .45
 u = 1.3
-d = 0.8
+d = 0.75
 
 w = 1.1
-beta = 1
-lam = 3.3
+beta = .5
+lam = 1
 
 #probability tensor with numpy and brains, still partly unexplained
 #index [k,l,kk,ll] means k (kk) ups for the good asset at time tau (between tau and tau'), and l (ll) for the bad asset
@@ -52,7 +52,7 @@ def g_get():
 
 
 g = g_get()
-
+print('g = '+str(g))
 
 #getting theta from Q^AO aka "thetifying" the q
 def thetify(q, pa, pb):
@@ -163,8 +163,8 @@ def draw_f(beta, lam, w, r_min, r_max):
 
 def propensities_SQPT(beta, lam, w) :
     theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
-    print(theta)
-    if theta == 0 : return r'Boundary solution for $Q_{AO}^\tau$'
+    print('theta = '+str(theta))
+    if theta == 0 : return 'Boundary solution'
     ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), w), ph, pl)
     print(ThetaP_vector)
     K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
@@ -172,42 +172,84 @@ def propensities_SQPT(beta, lam, w) :
     A, B = (Del >= theta), (Del <= -theta)
     #investment decision at tau'
     KA, KB = DelP >= ThetaPh, -DelP >= ThetaPl
-    #SA, SB = (-DelP >= ThetaPh) * (ThetaPh > 0) + (-DelP > 0) * (ThetaPh == 0), (DelP >= ThetaPl) * (ThetaPl > 0) + (DelP > 0) * (ThetaPl == 0)
+    SA, SB = (-DelP >= ThetaPh) * (ThetaPh > 0) + (-DelP > 0) * (ThetaPh == 0), (DelP >= ThetaPl) * (ThetaPl > 0) + (DelP > 0) * (ThetaPl == 0)
     QA, QB = np.abs(DelP) < ThetaPh, np.abs(DelP) < ThetaPl
     #gains or losses
     GA, GB = KK >= g, LL >= g  ##G|A,B
     #benchmark event
     S1A, S1B = DelP >= 0, DelP <= 0  ##1st order violation to switch conditional on A, on B   1-x to get keep violations
-    Q2A, Q2B = np.abs(DelP) >= ThetaPh, np.abs(DelP) >= ThetaPl  ##2nd order to liquidate |A,B   1-x to get other one
+    Q2 = np.abs(DelP) >= theta  ##2nd order to liquidate |A,B   1-x to get other one
     #propensities
-    pSK = (P * A * S1A * (1 - Q2A)).sum() + (P * B * S1B * (1 - Q2B)).sum()
-    kSKG = ((P * A * GA * S1A * (1 - Q2A) * KA).sum() + (P * B * GB * S1B * (1 - Q2B) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2A)).sum() + (P * B * GB * S1B * (1 - Q2B)).sum())
-    kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2A) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2B) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2A)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2B)).sum())
-    pKS = (P * A * (1 - S1A) * (1 - Q2A)).sum() + (P * B * (1 - S1B) * (1 - Q2B)).sum()
-    sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2A) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2B) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2A)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2B)).sum())
-    sKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2A) * (1 - KA - QA)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2B) * (1 - KB - QB)).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2A)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2B)).sum())
-    pKQ = (P * A * (1 - S1A) * Q2A).sum() + (P * B * (1 - S1B) * Q2B).sum()
-    lKQG = ((P * A * GA * (1 - S1A) * Q2A * QA).sum() + (P * B * GB * (1 - S1B) * Q2B * QB).sum()) / ((P * A * GA * (1 - S1A) * Q2A).sum() + (P * B * GB * (1 - S1B) * Q2B).sum())
-    lKQL = ((P * A * (1 - GA) * (1 - S1A) * Q2A * QA).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2B * QB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * Q2A).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2B).sum())
-    pSQ = (P * A * S1A * Q2A).sum() + (P * B * S1B * Q2B).sum()
-    lSQG = ((P * A * GA * S1A * Q2A * QA).sum() + (P * B * GB * S1B * Q2B * QB).sum()) / ((P * A * GA * S1A * Q2A).sum() + (P * B * GB * S1B * Q2B).sum())
-    lSQL = ((P * A * (1 - GA) * S1A * Q2A * QA).sum() + (P * B * (1 - GB) * S1B * Q2B * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2A).sum() + (P * B * (1 - GB) * S1B * Q2B).sum())
+    pSK = (P * A * S1A * (1 - Q2)).sum() + (P * B * S1B * (1 - Q2)).sum()
+    kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
+    kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
+    print((A * (1 - GA) * S1A * (1 - Q2) * KA))
+    pKS = (P * A * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - S1B) * (1 - Q2)).sum()
+    sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
+    sKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2)).sum())
+    pKQ = (P * A * (1 - S1A) * Q2).sum() + (P * B * (1 - S1B) * Q2).sum()
+    lKQG = ((P * A * GA * (1 - S1A) * Q2 * QA).sum() + (P * B * GB * (1 - S1B) * Q2 * QB).sum()) / ((P * A * GA * (1 - S1A) * Q2).sum() + (P * B * GB * (1 - S1B) * Q2).sum())
+    lKQL = ((P * A * (1 - GA) * (1 - S1A) * Q2 * QA).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2 * QB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * Q2).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2).sum())
+    pSQ = (P * A * S1A * Q2).sum() + (P * B * S1B * Q2).sum()
+    lSQG = ((P * A * GA * S1A * Q2 * QA).sum() + (P * B * GB * S1B * Q2 * QB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
+    lSQL = ((P * A * (1 - GA) * S1A * Q2 * QA).sum() + (P * B * (1 - GB) * S1B * Q2 * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
     PGR, PLR = pSK * (1 - kSKG) + pKS + pKQ + pSQ * lSQG, pSK * (1 - kSKL) + pKS + pKQ + pSQ * lSQL
-    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR
+    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR, theta
 
 def propensities_SQPT_disp(beta,lam,w) :
     list = propensities_SQPT(beta,lam,w)
-    if type(list) == str : return list
     plt.figure()
     plt.axis('off')
     plt.title('Status-quo prospect theory \nSecond-order violation propensities', fontsize='xx-large')
-    plt.text(0.25,0.5,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.75,0.5,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.5,0,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d), horizontalalignment='center', verticalalignment='top')
+    if type(list) == str :
+        plt.text(.5,.5,list + r' for $Q_{AO}^\tau$', horizontalalignment='center', fontsize='x-large')
+    else :
+        plt.text(0.25,0.6,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+        plt.text(0.75,0.6,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+    plt.text(0.5,0,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ', ('+r'$\theta=$'+str(list[10][0])+')', horizontalalignment='center', verticalalignment='top')
+    plt.text(0.5,0.25,r'$PGR=$'+str(list[8])+'\n'+r'$PLR=$'+str(list[9]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
     plt.show()
     plt.close()
     return None
 
 propensities_SQPT_disp(beta,lam,w)
 
+
+#realization utility
+
+def propensities_RUPT(beta, lam, w) :
+    theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
+    print('theta = '+str(theta))
+    if theta == 0 : return 'Boundary solution'
+    ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), w), ph, pl)
+    print(ThetaP_vector)
+    K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
+    #investment decision at tau
+    A, B = (Del >= theta), (Del <= -theta)
+    #investment decision at tau'
+    KA, KB = DelP >= ThetaPh, -DelP >= ThetaPl
+    SA, SB = (-DelP >= ThetaPh) * (ThetaPh > 0) + (-DelP > 0) * (ThetaPh == 0), (DelP >= ThetaPl) * (ThetaPl > 0) + (DelP > 0) * (ThetaPl == 0)
+    QA, QB = np.abs(DelP) < ThetaPh, np.abs(DelP) < ThetaPl
+    #gains or losses
+    GA, GB = KK >= g, LL >= g  ##G|A,B
+    #benchmark event
+    S1A, S1B = DelP >= 0, DelP <= 0  ##1st order violation to switch conditional on A, on B   1-x to get keep violations
+    Q2 = np.abs(DelP) >= theta  ##2nd order to liquidate |A,B   1-x to get other one
+    #propensities
+    pSK = (P * A * S1A * (1 - Q2)).sum() + (P * B * S1B * (1 - Q2)).sum()
+    kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
+    print(A * GA * S1A * (1 - Q2) * KA)
+    print(A*GA*S1A*(1-Q2))
+    kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
+    pKS = (P * A * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - S1B) * (1 - Q2)).sum()
+    sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
+    sKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2)).sum())
+    pKQ = (P * A * (1 - S1A) * Q2).sum() + (P * B * (1 - S1B) * Q2).sum()
+    lKQG = ((P * A * GA * (1 - S1A) * Q2 * QA).sum() + (P * B * GB * (1 - S1B) * Q2 * QB).sum()) / ((P * A * GA * (1 - S1A) * Q2).sum() + (P * B * GB * (1 - S1B) * Q2).sum())
+    lKQL = ((P * A * (1 - GA) * (1 - S1A) * Q2 * QA).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2 * QB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * Q2).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2).sum())
+    pSQ = (P * A * S1A * Q2).sum() + (P * B * S1B * Q2).sum()
+    lSQG = ((P * A * GA * S1A * Q2 * QA).sum() + (P * B * GB * S1B * Q2 * QB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
+    lSQL = ((P * A * (1 - GA) * S1A * Q2 * QA).sum() + (P * B * (1 - GB) * S1B * Q2 * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
+    PGR, PLR = pSK * (1 - kSKG) + pKS + pKQ + pSQ * lSQG, pSK * (1 - kSKL) + pKS + pKQ + pSQ * lSQL
+    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR
 
