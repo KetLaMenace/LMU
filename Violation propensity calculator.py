@@ -1,4 +1,3 @@
-# Créé par julien, le 14/06/2022 en Python 3.7
 ##quick script to compute sums like benchmark npgr and so on
 from math import *
 import numpy as np
@@ -242,7 +241,9 @@ def kSKG_SQPT(beta,lam,tau,n,ph,pl,u,d) :
                 thetaP = thetify(QAOtauP_SQPT(beta,lam,n,ph,pl,u,d,w,c),ph,pl)  ##theta' := thetified QAOtau'
                 for j in range(m-theta+1,m+1) :
                     if j in range(l,l+n+1) :  ##with these specifications we are in V_SK and G
-                        if m-j>=thetaP : numerator += p(tau,n,ph,pl,k,l,m,j)+p(tau,n,pl,ph,k,l,m,j)  ##the investor invests (keeps) when m-j>=theta'
+                        if m-j>=thetaP :
+                            numerator += p(tau,n,ph,pl,k,l,m,j)+p(tau,n,pl,ph,k,l,m,j)
+                            print(k,l,m,j)  ##the investor invests (keeps) when m-j>=theta'
                     denominator += p(tau,n,ph,pl,k,l,m,j)+p(tau,n,pl,ph,k,l,m,j)
     if denominator == 0 : return 'not defined'
     return numerator/denominator
@@ -458,10 +459,19 @@ def draw(beta,lam_list,n,ph,pl,u,d) :
 #draw(1,[1/5*i for i in range(5,10*5)],4,0.55,0.45,1.3,0.8)
 #draw(1,[2.5],4,0.55,0.45,1.3,0.8)
 
+tau = 2
+n = 4
+ph = .55
+pl = .45
+u = 1.3
+d = 0.75
 
-propensities_SQPT_disp(1,3.3,2,4,.55,.45,1.3,.8)
+w = 1.1
+beta = .5
+lam = 1
 
-theta = thetify(QAOtau_SQPT(1,3.3,4,.55,.45,1.3,.8),.55,.45)
+propensities_SQPT_disp(beta,lam,tau,n,ph,pl,u,d)
 
+theta = thetify(QAOtau_SQPT(beta,lam,n,ph,pl,u,d),ph,pl)
 print(theta)
 
