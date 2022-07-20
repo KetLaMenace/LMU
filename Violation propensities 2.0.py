@@ -9,7 +9,7 @@ u = 1.3
 d = 0.75
 
 w = 1.1
-beta = .5
+beta = .6
 lam = 1
 
 #probability tensor with numpy and brains, still partly unexplained
