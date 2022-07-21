@@ -202,23 +202,19 @@ def QAOtauP_RU(beta, lam, delta, w, c):
     Utility_tensor = v(np.outer(w + c, W_vector) - w, beta, lam)
     return (v(c, beta, lam)/delta - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
 
-def QBOtauP_RU(beta, lam):
-    Utility_tensor = v(W_vector - 1, beta, lam)
-    return - E(Utility_tensor, pl) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
-
 
 def propensities_RU(beta, lam, delta, w) :
     theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
     print('theta = '+str(theta))
     if theta == 0 : return 'Boundary solution'
-    ThetaPS = thetify(QBOtauP_RU(beta, lam), ph, pl)
     ThetaPK_vector = thetify(QAOtauP_RU(beta, lam, delta, w, w * (W_vector - 1)), ph, pl)
+    print('theta prime = ' + str(ThetaPK_vector))
     K, K, ThetaPhK, ThetaPlK = np.meshgrid(tau_list, tau_list, ThetaPK_vector, ThetaPK_vector)
     #investment decision at tau
     A, B = (Del >= theta), (Del <= -theta)
     #investment decision at tau'
     KA, KB = DelP >= ThetaPhK, -DelP >= ThetaPlK
-    SA, SB = (-DelP >= ThetaPS) * (ThetaPS > 0) + (-DelP > 0) * (ThetaPS == 0), (DelP >= ThetaPS) * (ThetaPS > 0) + (DelP > 0) * (ThetaPS == 0)
+    SA, SB = (-DelP >= theta) * (theta > 0) + (-DelP > 0) * (theta == 0), (DelP >= theta) * (theta > 0) + (DelP > 0) * (theta == 0)
     QA, QB = 1 - KA - SA, 1 - KB - SB
     #gains or losses
     GA, GB = KK >= g, LL >= g  ##G|A,B
