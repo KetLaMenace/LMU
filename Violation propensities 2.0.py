@@ -6,11 +6,12 @@ n = 4
 ph = .55
 pl = .45
 u = 1.3
-d = 0.75
+d = 0.8
 
 w = 1.1
-beta = .6
-lam = 1
+beta = .9
+lam = 3
+delta = .3
 
 #probability tensor with numpy and brains, still partly unexplained
 #index [k,l,kk,ll] means k (kk) ups for the good asset at time tau (between tau and tau'), and l (ll) for the bad asset
@@ -77,9 +78,8 @@ def E(L, p):  ##L is the array of values X, or an array of line arrays Xi
 #PT utility
 def v(y, beta, lam):
     return np.abs(y) ** beta * (-lam * (y < 0) + (y > 0))
-
-
 #As v is self-similar, we could ditch the variable w completely. We choose to keep it so that more general utility forms can be added easily, and set w=1 in all computations
+
 
 def QAOtau(beta, lam, w, r):
     return (v(w - r, beta, lam) - E(v(w * W_vector - r, beta, lam), pl)) / (E(v(w * W_vector - r, beta, lam), ph) - E(v(w * W_vector - r, beta, lam), pl))
@@ -166,7 +166,7 @@ def propensities_SQPT(beta, lam, w) :
     print('theta = '+str(theta))
     if theta == 0 : return 'Boundary solution'
     ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), w), ph, pl)
-    print(ThetaP_vector)
+    print('theta prime = ' +str(ThetaP_vector))
     K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
     #investment decision at tau
     A, B = (Del >= theta), (Del <= -theta)
@@ -183,7 +183,6 @@ def propensities_SQPT(beta, lam, w) :
     pSK = (P * A * S1A * (1 - Q2)).sum() + (P * B * S1B * (1 - Q2)).sum()
     kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
     kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
-    print((A * (1 - GA) * S1A * (1 - Q2) * KA))
     pKS = (P * A * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - S1B) * (1 - Q2)).sum()
     sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
     sKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2)).sum())
@@ -196,40 +195,31 @@ def propensities_SQPT(beta, lam, w) :
     PGR, PLR = pSK * (1 - kSKG) + pKS + pKQ + pSQ * lSQG, pSK * (1 - kSKL) + pKS + pKQ + pSQ * lSQL
     return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR, theta
 
-def propensities_SQPT_disp(beta,lam,w) :
-    list = propensities_SQPT(beta,lam,w)
-    plt.figure()
-    plt.axis('off')
-    plt.title('Status-quo prospect theory \nSecond-order violation propensities', fontsize='xx-large')
-    if type(list) == str :
-        plt.text(.5,.5,list + r' for $Q_{AO}^\tau$', horizontalalignment='center', fontsize='x-large')
-    else :
-        plt.text(0.25,0.6,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-        plt.text(0.75,0.6,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.5,0,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ', ('+r'$\theta=$'+str(list[10][0])+')', horizontalalignment='center', verticalalignment='top')
-    plt.text(0.5,0.25,r'$PGR=$'+str(list[8])+'\n'+r'$PLR=$'+str(list[9]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.show()
-    plt.close()
-    return None
-
-propensities_SQPT_disp(beta,lam,w)
-
-
 #realization utility
 
-def propensities_RUPT(beta, lam, w) :
+
+def QAOtauP_RU(beta, lam, delta, w, c):
+    Utility_tensor = v(np.outer(w + c, W_vector) - w, beta, lam)
+    return (v(c, beta, lam)/delta - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
+
+def QBOtauP_RU(beta, lam):
+    Utility_tensor = v(W_vector - 1, beta, lam)
+    return - E(Utility_tensor, pl) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
+
+
+def propensities_RU(beta, lam, delta, w) :
     theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
     print('theta = '+str(theta))
     if theta == 0 : return 'Boundary solution'
-    ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), w), ph, pl)
-    print(ThetaP_vector)
-    K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
+    ThetaPS = thetify(QBOtauP_RU(beta, lam), ph, pl)
+    ThetaPK_vector = thetify(QAOtauP_RU(beta, lam, delta, w, w * (W_vector - 1)), ph, pl)
+    K, K, ThetaPhK, ThetaPlK = np.meshgrid(tau_list, tau_list, ThetaPK_vector, ThetaPK_vector)
     #investment decision at tau
     A, B = (Del >= theta), (Del <= -theta)
     #investment decision at tau'
-    KA, KB = DelP >= ThetaPh, -DelP >= ThetaPl
-    SA, SB = (-DelP >= ThetaPh) * (ThetaPh > 0) + (-DelP > 0) * (ThetaPh == 0), (DelP >= ThetaPl) * (ThetaPl > 0) + (DelP > 0) * (ThetaPl == 0)
-    QA, QB = np.abs(DelP) < ThetaPh, np.abs(DelP) < ThetaPl
+    KA, KB = DelP >= ThetaPhK, -DelP >= ThetaPlK
+    SA, SB = (-DelP >= ThetaPS) * (ThetaPS > 0) + (-DelP > 0) * (ThetaPS == 0), (DelP >= ThetaPS) * (ThetaPS > 0) + (DelP > 0) * (ThetaPS == 0)
+    QA, QB = 1 - KA - SA, 1 - KB - SB
     #gains or losses
     GA, GB = KK >= g, LL >= g  ##G|A,B
     #benchmark event
@@ -238,8 +228,6 @@ def propensities_RUPT(beta, lam, w) :
     #propensities
     pSK = (P * A * S1A * (1 - Q2)).sum() + (P * B * S1B * (1 - Q2)).sum()
     kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
-    print(A * GA * S1A * (1 - Q2) * KA)
-    print(A*GA*S1A*(1-Q2))
     kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
     pKS = (P * A * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - S1B) * (1 - Q2)).sum()
     sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
@@ -251,5 +239,27 @@ def propensities_RUPT(beta, lam, w) :
     lSQG = ((P * A * GA * S1A * Q2 * QA).sum() + (P * B * GB * S1B * Q2 * QB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
     lSQL = ((P * A * (1 - GA) * S1A * Q2 * QA).sum() + (P * B * (1 - GB) * S1B * Q2 * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
     PGR, PLR = pSK * (1 - kSKG) + pKS + pKQ + pSQ * lSQG, pSK * (1 - kSKL) + pKS + pKQ + pSQ * lSQL
-    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR
+    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, PGR, PLR, theta
 
+#propensities_RU(beta, lam, delta, w)
+
+def propensities_disp(beta,lam,delta,w, theory) :
+    if theory == 'PT' : list = propensities_SQPT(beta,lam,w)
+    elif theory == 'RU' : list = propensities_RU(beta,lam,delta,w)
+    else : return 'invalid theory'
+    plt.figure()
+    plt.axis('off')
+    if theory == 'PT' : plt.title('Status-quo prospect theory \nSecond-order violation propensities', fontsize='xx-large')
+    elif theory == 'RU' : plt.title('Prospect theory with realization utility \nSecond-order violation propensities', fontsize='xx-large')
+    if type(list) == str :
+        plt.text(.5,.5,list + r' for $Q_{AO}^\tau$', horizontalalignment='center', fontsize='x-large')
+    else :
+        plt.text(0.25,0.6,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+        plt.text(0.75,0.6,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+        plt.text(0.5, 0.25, r'$PGR=$' + str(list[8]) + '\n' + r'$PLR=$' + str(list[9]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+    plt.text(0.5,0,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ', ('+r'$\theta=$'+str(list[10][0])+')', horizontalalignment='center', verticalalignment='top')
+    plt.show()
+    plt.close()
+    return None
+
+propensities_disp(beta,lam,delta,w, 'RU')
