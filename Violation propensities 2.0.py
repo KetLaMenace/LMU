@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 tau = 2
 n = 4
 ph = .55
-pl = .1
+pl = .45
 u = 1.3
 d = 0.8
 
 w = 1.1
-beta = 1
-lam = 1
+beta = .9
+lam = 3
 delta = .3
 
 #probability tensor with numpy and brains, still partly unexplained
@@ -166,18 +166,18 @@ def QAOtauP_RU(beta, lam, delta, w, c):
 
 def propensities(beta, lam, delta, w, theory) :
     theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
-    print('theta = '+str(theta))
+    print('theta = '+str(theta[0]))
     if theta == 0 : return 'Boundary solution'
     if theory == 'RU' :
         ThetaPK_vector = thetify(QAOtauP_RU(beta, lam, delta, w, w * (W_vector - 1)), ph, pl)
-        print('theta prime = ' + str(ThetaPK_vector))
+        print('RU theta prime = ' + str(ThetaPK_vector))
         K, K, ThetaPhK, ThetaPlK = np.meshgrid(tau_list, tau_list, ThetaPK_vector, ThetaPK_vector)
         #investment decision at tau'
         KA, KB = DelP >= ThetaPhK, -DelP >= ThetaPlK
         SA, SB = (-DelP >= theta) * (theta > 0) + (-DelP > 0) * (theta == 0), (DelP >= theta) * (theta > 0) + (DelP > 0) * (theta == 0)
     elif theory == 'PT' :
         ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), w), ph, pl)
-        print('theta prime = ' + str(ThetaP_vector))
+        print('PT theta prime = ' + str(ThetaP_vector))
         K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
         # investment decision at tau'
         KA, KB = DelP >= ThetaPh, -DelP >= ThetaPl
@@ -196,6 +196,8 @@ def propensities(beta, lam, delta, w, theory) :
     pLSK = (P * (1 - GA) * A * S1A * (1 - Q2)).sum() + (P * (1 - GB) * B * S1B * (1 - Q2)).sum()
     kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
     kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
+    print(A * (1 - GA) * S1A * (1 - Q2) * KA)
+    print(B * (1 - GB) * S1B * (1 - Q2) * KB)
     pGKS = (P * GA * A * (1 - S1A) * (1 - Q2)).sum() + (P * GB * B * (1 - S1B) * (1 - Q2)).sum()
     pLKS = (P * (1 - GA) * A * (1 - S1A) * (1 - Q2)).sum() + (P * (1 - GB) * B * (1 - S1B) * (1 - Q2)).sum()
     sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
@@ -216,7 +218,7 @@ def propensities_disp(beta,lam,delta,w, theory) :
     plt.figure()
     plt.axis('off')
     if theory == 'PT' : plt.title('Status-quo prospect theory \nSecond-order violation propensities', fontsize='xx-large')
-    elif theory == 'RU' : plt.title('Prospect theory with realization utility \nSecond-order violation propensities', fontsize='xx-large')
+    elif theory == 'RU' : plt.title('Realization utility \nSecond-order violation propensities', fontsize='xx-large')
     if type(list) == str :
         plt.text(.5,.5,list + r' for $Q_{AO}^\tau$', horizontalalignment='center', fontsize='x-large')
     else :
@@ -229,4 +231,4 @@ def propensities_disp(beta,lam,delta,w, theory) :
     return None
 
 propensities_disp(beta,lam,delta,w, 'PT')
-propensities_disp(beta,lam,delta,w, 'RU')
+#propensities_disp(beta,lam,delta,w, 'RU')
