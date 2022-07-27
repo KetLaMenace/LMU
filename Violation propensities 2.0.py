@@ -5,14 +5,15 @@ tau = 2
 n = 4
 ph = .55
 pl = .45
-u = 1.3
-d = 0.8
+u = 1.45
+d = 0.7
 
 w = 1.1
 beta = .9
 lam = 3
 delta = .5
 alpha = .9
+alphaP = 1
 eta = .9
 
 #probability tensor with numpy and brains, still partly unexplained
@@ -166,13 +167,17 @@ def QAOtauP_RU(beta, lam, delta, w, c):
     Utility_tensor = v(np.outer(w + c, W_vector) - w, beta, lam)
     return (v(c, beta, lam)/delta - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
 
-def propensities(beta, lam, delta, alpha, eta, w, theory) :
-    theta = thetify(QAOtau(beta, lam, w, 0), ph, pl)
-    if theta == 0: return 'Boundary solution'
+def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
     if theory == 'BRN' :
-        KA, KB = DelP + (alpha - 1) * Del >= theta, -(DelP + (alpha - 1) * Del) >= theta
+        q = QAOtau(beta, lam, w, 0)
+        odds = (q/(1-q))**alphaP
+        theta = thetify(odds/(1+odds), ph, pl)
+        if theta == 0: return 'Boundary solution'
+        KA, KB = (DelP + (alpha - 1) * Del) * alphaP >= theta, -(DelP + (alpha - 1) * Del) * alphaP >= theta
         SA, SB = KB, KA
     elif theory == 'EE' :
+        theta = thetify(QAOtau(beta, lam, w, 0), ph, pl)
+        if theta == 0: return 'Boundary solution'
         KA, KB = 2 * ((1 - eta) * Del + eta * (DelP - Del)) >= theta, -(2 * ((1 - eta) * Del + eta * (DelP - Del))) >= theta
         SA, SB = KB, KA
     else :
@@ -226,11 +231,11 @@ def propensities(beta, lam, delta, alpha, eta, w, theory) :
     lSQL = ((P * A * (1 - GA) * S1A * Q2 * QA).sum() + (P * B * (1 - GB) * S1B * Q2 * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
     sSQG = ((P * A * GA * S1A * Q2 * SA).sum() + (P * B * GB * S1B * Q2 * SB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
     sSQL = ((P * A * (1 - GA) * S1A * Q2 * SA).sum() + (P * B * (1 - GB) * S1B * Q2 * SB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
-    PGR, PLR = pGSK * (1 - kSKG) + pGKS * (1 - kKSG) + pGKQ * (1 - kKQG) + pGSQ * (lSQG + sSQG), pLSK * (1 - kSKL) + pLKS * (1 - kKSL) + pLKQ * (1 - kKQL) + pLSQ * (lSQL + sSQL)
+    PGR, PLR = pGSK * (1 - np.nan_to_num(kSKG)) + pGKS * (1 - np.nan_to_num(kKSG)) + pGKQ * (1 - np.nan_to_num(kKQG)) + pGSQ * np.nan_to_num(lSQG + sSQG), pLSK * (1 - np.nan_to_num(kSKL)) + pLKS * (1 - np.nan_to_num(kKSL)) + pLKQ * (1 - np.nan_to_num(kKQL)) + pLSQ * np.nan_to_num(lSQL + sSQL)
     return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, sSKG, kKSG, kKQG, sSQG, sSKL, kKSL, kKQL, sSQL, PGR, PLR, theta
 
-def propensities_disp(beta,lam,delta,alpha,eta,w, theory) :
-    list = propensities(beta,lam,delta,alpha,eta,w,theory)
+def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
+    list = propensities(beta,lam,delta,alpha,alphaP,eta,w,theory)
     plt.figure()
     plt.axis('off')
     if theory == 'PT' : plt.title('Status-quo prospect theory', fontsize='xx-large')
@@ -238,18 +243,22 @@ def propensities_disp(beta,lam,delta,alpha,eta,w, theory) :
     elif theory == 'BRN' : plt.title('Base-rate neglect', fontsize='xx-large')
     elif theory == 'EE': plt.title('Extrapolative expectations', fontsize='xx-large')
     if type(list) == str :
-        plt.text(.5,.5,list + r' for $Q_{AO}^\tau$', horizontalalignment='center', fontsize='x-large')
+        plt.text(.5,.5,r'Agent always invests at time $\tau$', horizontalalignment='center', fontsize='x-large')
+    elif list[:-1] == np.nan :
+        plt.text(.5,.5,r'Agent never invests at time $\tau$', horizontalalignment='center', fontsize='x-large')
     else :
         plt.text(.18,.75,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(.82,.75,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(.18, .4, r'$\sigma_{SK}^{G} = $' + str(list[8]) + '\n'r'$\kappa_{KS}^{G} = $' + str(list[9]) + '\n' + r'$\kappa_{KQ}^{G} = $' + str(list[10]) + '\n' + r'$\sigma_{SQ}^{G} = $' + str(list[11]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(.82, .4, r'$\sigma_{SK}^{L} = $' + str(list[12]) + '\n'r'$\kappa_{KS}^{L} = $' + str(list[13]) + '\n' + r'$\kappa_{KQ}^{L} = $' + str(list[14]) + '\n' + r'$\sigma_{SQ}^{L} = $' + str(list[15]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(0.5, 0.1, r'$PGR=$' + str(list[16]) + '\n' + r'$PLR=$' + str(list[17]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + '\n'+r'$\theta=$'+str(list[18][0]), horizontalalignment='center', verticalalignment='top')
+    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+', '+r'$\lambda=$'+str(lam)+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-1][0]))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
+    #plt.savefig('name.pdf')
     plt.show()
     plt.close()
     return None
 
-propensities_disp(beta,lam,delta,alpha,eta,w, 'PT')
-#propensities_disp(beta,lam,delta,w, 'RU')
-#propensities(beta,lam,delta,w, 'PT')
+
+propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, 'RU')
+
+#propensities(beta,lam,delta,alpha,eta,w, 'PT')
