@@ -1,0 +1,58 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+
+\title{Computing violation propensities}
+\author{Julien Ketabi \_ under the supervision of Johannes Maier}
+\date{July 2022}
+
+\begin{document}
+
+\maketitle
+
+We use the setup and notations from Maier et Fischer (2022).
+
+For any two investment decisions $I,I'\in\{K,S,Q\}$, the propensity to make a second-order violation in $V_{I' I}$ in a given domain $D\in\{G,L\}$ is :
+\begin{equation}\label{main}
+\begin{split}
+i_{I'I}^G :&= p(I|DV_{I'I}) \\
+&= \frac{p(IDV_{I'I})}{p(DV_{I'I})} \\
+&= \frac{p(AIDV_{I'I}) + p(BIDV_{I'I})}{p(ADV_{I'I}) + p(BDV_{I'I})}
+\end{split}
+\end{equation}
+
+For instance, for an asset in gains in $V_{SQ}$ (signaling good quality), we get the following liquidating propensity.
+$$\lambda_{SQ}^G = \frac{p(AQGV_{SQ})+p(BQGV_{SQ})}{p(AGV_{SQ})+p(BGV_{SQ})}$$
+
+In order to compute these probabilities, we explicit the relevant events in terms of $(\Delta,k,l)$ coordinates, where $k$ is the number of price increases of asset A between $\tau$ and $\tau'$, and $l$ is the same for asset B.
+The probability to be in a given state $(\Delta,k,l)$ is $$p(\Delta,k,l)=\sum_{j=max(0,\Delta)}^{min(\tau,\tau+\Delta)}\binom{\tau}{j}\binom{j-\Delta}{\tau}\binom{n}{k}\binom{n}{l}p_a^{j+k}(1-p_a)^{\tau+n-j-k}p_b^{j-\Delta+l}(1-p_b)^{tau+n-j+\Delta-l}$$
+
+By fixing the investment decision at time $\tau$ (whether an event is in\\
+$A=[\Delta\geq\theta]$ or $B=[-\Delta\geq\theta]$), all the relevant events are easily specified in $(\Delta,k,l)$ coordinates as follows :\\
+
+For the gain/loss domains :
+\begin{equation*}
+\begin{split}
+AG&=A\cap[k\geq g]\\
+AL&=A\setminus AG\\
+BG&=B\cap[l\geq g]\\
+BL&=B\setminus BG
+\end{split}
+\end{equation*}
+
+For the benchmark events, using $\Delta' := \Delta+k-l$ :
+\begin{equation*}
+\begin{split}
+AV_{S.}&=A\cap[\Delta'\geq0]\\
+BV_{S.}&=B\cap[-\Delta'\geq0]\\
+V_{.Q}&=[\Delta'\geq\theta]
+\end{split}
+\end{equation*}
+where $V_{S.}$ is the event in which switching (as opposed to keeping) is a first-order violation, and $V_{.Q}$ is the event in which liquidating (as opposed to investing) is a second-order violation, such that each benchmark event is the intersection of $V_{S.}$ or its complementary with $V_{.Q}$ or its complementary.\\
+
+For the investment decision at time $\tau'$, the specification is given by the model considered.\\
+
+All in all, using a model with a given parametrization yields a value for $\theta$ as well as a rule for slicing the parameter space into the events $K$, $S$ and $Q$. Computing a second-order violation propensity such as $\lambda_{SQ}^G$ then boils down to writing intersections of events in terms of $(\Delta,k,l)$ indices and summing the $p(\Delta,k,l)$ according to formula (\ref{main}) :
+$$\lambda_{SQ}^G = \frac{\sum_{(\Delta,k,l)\in AQ\cap AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,k,l)+\sum_{(\Delta,k,l)\in BQ\cap BG\cap BV_{S.}\cap V_{.Q}}p(\Delta,k,l)}{\sum_{(\Delta,k,l)\in  AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,k,l)+\sum_{(\Delta,k,l)\in BG\cap BV_{S.}\cap V_{.Q}}p(\Delta,k,l)}$$
+
+\end{document}
