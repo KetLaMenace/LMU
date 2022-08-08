@@ -455,9 +455,6 @@ def draw(beta,lam_list,n,ph,pl,u,d) :
     plt.close()
     return None
 
-##instruction for plotting QAOtau'(c) with lambda from 1 to 10, or with lambda=2.5
-#draw(1,[1/5*i for i in range(5,10*5)],4,0.55,0.45,1.3,0.8)
-#draw(1,[2.5],4,0.55,0.45,1.3,0.8)
 
 tau = 2
 n = 4
@@ -470,7 +467,13 @@ w = 1.1
 beta = .5
 lam = 1
 
-propensities_SQPT_disp(beta,lam,tau,n,ph,pl,u,d)
+
+##instruction for plotting QAOtau'(c) with lambda from 1 to 10, or with lambda=2.5
+draw(beta,[1/5*i for i in range(5,10*5)],n,ph,pl,u,d)
+#draw(1,[2.5],4,0.55,0.45,1.3,0.8)
+
+
+#propensities_SQPT_disp(beta,lam,tau,n,ph,pl,u,d)
 
 theta = thetify(QAOtau_SQPT(beta,lam,n,ph,pl,u,d),ph,pl)
 print(theta)
