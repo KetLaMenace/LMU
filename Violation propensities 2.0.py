@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 tau = 2
 n = 4
 ph = .55
 pl = .45
-u = 1.3
+u = 1.375
 d = .7
 
 w = 1.1
@@ -101,6 +102,7 @@ def QAOtauP_RU(beta, lam, delta, w, c):
     return (v(c, beta, lam)/delta - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
 
 def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
+    r=0
     if theory == 'BRN' :
         q = QAOtau(beta, lam, w, 0)
         odds = (q/(1-q))**alphaP
@@ -118,6 +120,18 @@ def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
         if theta == 0: return 'Boundary solution'
         KA, KB = -DelP >= theta, DelP >= theta
         SA, SB = KB, KA
+    elif theory == 'LEPT' :
+        r = ref_point(beta,lam,w)
+        theta = thetify(QAOtau(beta, lam, w, r), ph, pl)
+        if theta == 0:
+            print('r='+str(r))
+            return 'Boundary solution'
+        ThetaP_vector = thetify(QAOtauP(beta, lam, w, w * (W_vector - 1), r), ph, pl)
+        print('PT theta prime = ' + str(ThetaP_vector))
+        K, K, ThetaPh, ThetaPl = np.meshgrid(tau_list, tau_list, ThetaP_vector, ThetaP_vector)
+        # investment decision at tau'
+        KA, KB = DelP >= ThetaPh, -DelP >= ThetaPl
+        SA, SB = (-DelP >= ThetaPh) * (ThetaPh > 0) + (-DelP > 0) * (ThetaPh == 0), (DelP >= ThetaPl) * (ThetaPl > 0) + (DelP > 0) * (ThetaPl == 0)
     else :
         theta = thetify(QAOtau(beta, lam, w, w), ph, pl)
         if theta == 0 : return 'Boundary solution'
@@ -173,7 +187,7 @@ def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
     sSQG = ((P * A * GA * S1A * Q2 * SA).sum() + (P * B * GB * S1B * Q2 * SB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
     sSQL = ((P * A * (1 - GA) * S1A * Q2 * SA).sum() + (P * B * (1 - GB) * S1B * Q2 * SB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
     PGR, PLR = pGSK * (1 - np.nan_to_num(kSKG)) + pGKS * (1 - np.nan_to_num(kKSG)) + pGKQ * (1 - np.nan_to_num(kKQG)) + pGSQ * np.nan_to_num(lSQG + sSQG), pLSK * (1 - np.nan_to_num(kSKL)) + pLKS * (1 - np.nan_to_num(kKSL)) + pLKQ * (1 - np.nan_to_num(kKQL)) + pLSQ * np.nan_to_num(lSQL + sSQL)
-    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, sSKG, kKSG, kKQG, sSQG, sSKL, kKSL, kKQL, sSQL, PGR, PLR, theta
+    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, sSKG, kKSG, kKQG, sSQG, sSKL, kKSL, kKQL, sSQL, PGR, PLR, theta, r
 
 def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
     list = propensities(beta,lam,delta,alpha,alphaP,eta,w,theory)
@@ -184,6 +198,7 @@ def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
     elif theory == 'BRN' : plt.title('Base-rate neglect', fontsize='xx-large')
     elif theory == 'EE' : plt.title('Extrapolative expectations', fontsize='xx-large')
     elif theory == 'BMR' : plt.title('Belief in mean reversion', fontsize='xx-large')
+    elif theory == 'LEPT' : plt.title('Lagged-expectations Prospect theory', fontsize='xx-large')
     if type(list) == str :
         plt.text(.5,.5,r'Agent always invests at time $\tau$', horizontalalignment='center', fontsize='x-large')
     elif list[:-1] == np.nan :
@@ -194,14 +209,14 @@ def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
         plt.text(.18, .4, r'$\sigma_{SK}^{G} = $' + str(list[8]) + '\n'r'$\kappa_{KS}^{G} = $' + str(list[9]) + '\n' + r'$\kappa_{KQ}^{G} = $' + str(list[10]) + '\n' + r'$\sigma_{SQ}^{G} = $' + str(list[11]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(.82, .4, r'$\sigma_{SK}^{L} = $' + str(list[12]) + '\n'r'$\kappa_{KS}^{L} = $' + str(list[13]) + '\n' + r'$\kappa_{KQ}^{L} = $' + str(list[14]) + '\n' + r'$\sigma_{SQ}^{L} = $' + str(list[15]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
         plt.text(0.5, 0.1, r'$PGR=$' + str(list[16]) + '\n' + r'$PLR=$' + str(list[17]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+(theory=='PT' or theory=='RU')*(', '+r'$\lambda=$'+str(lam))+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+(theory=='BRN')*(', '+r'$\alpha=$'+str(alpha)+', '+r'$\alpha^\prime=$'+str(alphaP))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-1][0]))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
+    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+(theory=='PT' or theory=='RU')*(', '+r'$\lambda=$'+str(lam))+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+(theory=='BRN')*(', '+r'$\alpha=$'+str(alpha)+', '+r'$\alpha^\prime=$'+str(alphaP))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-2][0]) + (theory=='LEPT')*(', '+r'$r=$'+str(list[-1])))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
     #plt.savefig('name.pdf')
     plt.show()
     plt.close()
     return None
 
 
-propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, 'BMR')
+
 
 #propensities(beta,lam,delta,alpha,eta,w, 'PT')
 
@@ -241,7 +256,7 @@ def f(beta, lam, w, r):
     result += (P * Wl * B * QB).sum()
     result = result * w
     #decomposition_validity_test = np.logical_xor(np.logical_xor(np.logical_xor(np.logical_xor(np.logical_xor(KA,SA),QA),KB),SB),QB)==A+B
-    return result, theta, ThetaP_vector[4]
+    return result#, theta, ThetaP_vector[4]
 
 
 def draw_f(beta, lam, w, r_min, r_max):
@@ -252,10 +267,10 @@ def draw_f(beta, lam, w, r_min, r_max):
     # Z = np.array([(f(beta,lam,w,r+step)-f(beta,lam,w,r-step))/2/step for r in X[1:-1]])  #f'
     plt.figure()
     ax = plt.subplot()
-    ax.set_ylim(-.1, tau + 1.1)
-    ax.plot(X, Y, linestyle='none', marker='.', markersize=1, label=(r'$E_0[w_T]$', r'$\theta$', 'theta prime'))
-    ax.plot(X, X)
+    ax.set_ylim(min(w,w*E_Wl**2)-.1, w*E_Wh**2 + .1)
+    ax.plot(X, Y, linestyle='none', marker='.', markersize=1, label=r'$E_0[w_T]$')#, r'$\theta$', 'theta prime'))
     Ones = np.ones(len(X))
+    ax.plot(X,X)
     ax.plot(X, w * E_Wh ** 2 * Ones, label=r'$w E[W_h]^2$', linestyle='none', marker='.', markersize=1)
     ax.plot(X, w * E_Wl ** 2 * Ones, label=r'$w E[W_l]^2$', linestyle='none', marker='.', markersize=1)
     ax.plot(X, w * E_lottery ** 2 * Ones, label=r'$w E[W_{lottery}]^2$', linestyle='none', marker='.', markersize=1)
@@ -273,6 +288,27 @@ def draw_f(beta, lam, w, r_min, r_max):
     plt.close()
     # return Attractors
 
-#draw_f(beta, lam, w, w, 3)
-#print(f(beta, lam, w, 2))
+def ref_point(beta, lam, w) :
+    start = 3
+    while start > 1 :
+        r = start*w
+        r_next = f(beta,lam,w,r)
+        counter = 0
+        while True :
+            r = r_next
+            r_next = f(beta,lam,w,r)
+            if counter > 100 :
+                break
+            if abs(r-r_next)<1e-14 and abs(r-w)>1e-14 :
+                return r
+            counter += 1
+        start -= .1
+    if abs(f(beta,lam,w,w)-w)<1e-14 :
+        return w
 
+
+
+
+draw_f(beta, lam, w, w, 3)
+print(ref_point(beta,lam,w))
+propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, 'LEPT')
