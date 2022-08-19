@@ -1,13 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 
 tau = 2
 n = 4
 ph = .55
 pl = .45
-u = 1.375
-d = .7
+u = 1.25
+d = .8
 
 w = 1.1
 beta = .9
@@ -40,7 +39,7 @@ def wealth(t, ups):
 
 
 W_vector = wealth(n, n_list)
-K, K, Wh, Wl = np.meshgrid(tau_list, tau_list, W_vector, W_vector)
+L, K, Wh, Wl = np.meshgrid(tau_list, tau_list, W_vector, W_vector)
 #Wh is the relative wealth variation at tau' after investing in the good asset
 E_Wh = (P * Wh).sum()
 E_Wl = (P * Wl).sum()
@@ -162,32 +161,36 @@ def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
     S1A, S1B = DelP >= 0, DelP <= 0  ##1st order violation to switch conditional on A, on B   1-x to get keep violations
     Q2 = np.abs(DelP) >= theta  ##2nd order to liquidate |A,B   1-x to get other one
     #propensities
-    pGSK = ((P * GA * A * S1A * (1 - Q2)).sum() + (P * GB * B * S1B * (1 - Q2)).sum()) / ((P * A * GA).sum() + (P * B * GB).sum())
-    pLSK = ((P * (1 - GA) * A * S1A * (1 - Q2)).sum() + (P * (1 - GB) * B * S1B * (1 - Q2)).sum()) / ((P * A * (1-GA)).sum() + (P * B * (1-GB)).sum())
+    pG = ((P * A * GA).sum() + (P * B * GB).sum())
+    pL = ((P * A * (1-GA)).sum() + (P * B * (1-GB)).sum())
+    pGSK = ((P * GA * A * S1A * (1 - Q2)).sum() + (P * GB * B * S1B * (1 - Q2)).sum()) / pG
+    pLSK = ((P * (1 - GA) * A * S1A * (1 - Q2)).sum() + (P * (1 - GB) * B * S1B * (1 - Q2)).sum()) / pL
     kSKG = ((P * A * GA * S1A * (1 - Q2) * KA).sum() + (P * B * GB * S1B * (1 - Q2) * KB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
     kSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
     sSKG = ((P * A * GA * S1A * (1 - Q2) * SA).sum() + (P * B * GB * S1B * (1 - Q2) * SB).sum()) / ((P * A * GA * S1A * (1 - Q2)).sum() + (P * B * GB * S1B * (1 - Q2)).sum())
     sSKL = ((P * A * (1 - GA) * S1A * (1 - Q2) * SA).sum() + (P * B * (1 - GB) * S1B * (1 - Q2) * SB).sum()) / ((P * A * (1 - GA) * S1A * (1 - Q2)).sum() + (P * B * (1 - GB) * S1B * (1 - Q2)).sum())
-    pGKS = ((P * GA * A * (1 - S1A) * (1 - Q2)).sum() + (P * GB * B * (1 - S1B) * (1 - Q2)).sum()) / ((P * A * GA).sum() + (P * B * GB).sum())
-    pLKS = ((P * (1 - GA) * A * (1 - S1A) * (1 - Q2)).sum() + (P * (1 - GB) * B * (1 - S1B) * (1 - Q2)).sum()) / ((P * A * (1-GA)).sum() + (P * B * (1-GB)).sum())
+    pGKS = ((P * GA * A * (1 - S1A) * (1 - Q2)).sum() + (P * GB * B * (1 - S1B) * (1 - Q2)).sum()) / pG
+    pLKS = ((P * (1 - GA) * A * (1 - S1A) * (1 - Q2)).sum() + (P * (1 - GB) * B * (1 - S1B) * (1 - Q2)).sum()) / pL
     sKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
     sKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2) * (1 - KA - QA)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2) * (1 - KB - QB)).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2)).sum())
     kKSG = ((P * A * GA * (1 - S1A) * (1 - Q2) * KA).sum() + (P * B * GB * (1 - S1B) * (1 - Q2) * KB).sum()) / ((P * A * GA * (1 - S1A) * (1 - Q2)).sum() + (P * B * GB * (1 - S1B) * (1 - Q2)).sum())
     kKSL = ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2) * KA).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2) * KB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * (1 - Q2)).sum() + (P * B * (1 - GB) * (1 - S1B) * (1 - Q2)).sum())
-    pGKQ = ((P * GA * A * (1 - S1A) * Q2).sum() + (P * GB * B * (1 - S1B) * Q2).sum()) / ((P * A * GA).sum() + (P * B * GB).sum())
-    pLKQ = ((P * (1 - GA) * A * (1 - S1A) * Q2).sum() + (P * (1 - GB) * B * (1 - S1B) * Q2).sum()) / ((P * A * (1-GA)).sum() + (P * B * (1-GB)).sum())
+    pGKQ = ((P * GA * A * (1 - S1A) * Q2).sum() + (P * GB * B * (1 - S1B) * Q2).sum()) / pG
+    pLKQ = ((P * (1 - GA) * A * (1 - S1A) * Q2).sum() + (P * (1 - GB) * B * (1 - S1B) * Q2).sum()) / pL
     lKQG = ((P * A * GA * (1 - S1A) * Q2 * QA).sum() + (P * B * GB * (1 - S1B) * Q2 * QB).sum()) / ((P * A * GA * (1 - S1A) * Q2).sum() + (P * B * GB * (1 - S1B) * Q2).sum())
     lKQL = ((P * A * (1 - GA) * (1 - S1A) * Q2 * QA).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2 * QB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * Q2).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2).sum())
     kKQG = ((P * A * GA * (1 - S1A) * Q2 * KA).sum() + (P * B * GB * (1 - S1B) * Q2 * KB).sum()) / ((P * A * GA * (1 - S1A) * Q2).sum() + (P * B * GB * (1 - S1B) * Q2).sum())
     kKQL = ((P * A * (1 - GA) * (1 - S1A) * Q2 * KA).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2 * KB).sum()) / ((P * A * (1 - GA) * (1 - S1A) * Q2).sum() + (P * B * (1 - GB) * (1 - S1B) * Q2).sum())
-    pGSQ = ((P * GA * A * S1A * Q2).sum() + (P * GB * B * S1B * Q2).sum()) / ((P * A * GA).sum() + (P * B * GB).sum())
-    pLSQ = ((P * (1 - GA) * A * S1A * Q2).sum() + (P * (1 - GB) * B * S1B * Q2).sum()) / ((P * A * (1-GA)).sum() + (P * B * (1-GB)).sum())
+    pGSQ = ((P * GA * A * S1A * Q2).sum() + (P * GB * B * S1B * Q2).sum()) / pG
+    pLSQ = ((P * (1 - GA) * A * S1A * Q2).sum() + (P * (1 - GB) * B * S1B * Q2).sum()) / pL
     lSQG = ((P * A * GA * S1A * Q2 * QA).sum() + (P * B * GB * S1B * Q2 * QB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
     lSQL = ((P * A * (1 - GA) * S1A * Q2 * QA).sum() + (P * B * (1 - GB) * S1B * Q2 * QB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
     sSQG = ((P * A * GA * S1A * Q2 * SA).sum() + (P * B * GB * S1B * Q2 * SB).sum()) / ((P * A * GA * S1A * Q2).sum() + (P * B * GB * S1B * Q2).sum())
     sSQL = ((P * A * (1 - GA) * S1A * Q2 * SA).sum() + (P * B * (1 - GB) * S1B * Q2 * SB).sum()) / ((P * A * (1 - GA) * S1A * Q2).sum() + (P * B * (1 - GB) * S1B * Q2).sum())
+    kG = ((P * A * GA * (1 - S1A * Q2) * KA).sum() + (P * B * GB * (1 - S1B * Q2) * KB).sum()) / pG
+    kL = ((P * A * (1 - GA) * (1 - S1A * Q2) * KA).sum() + (P * B * (1 - GB) * (1 - S1B * Q2) * KB).sum()) / pL
     PGR, PLR = pGSK * (1 - np.nan_to_num(kSKG)) + pGKS * (1 - np.nan_to_num(kKSG)) + pGKQ * (1 - np.nan_to_num(kKQG)) + pGSQ * np.nan_to_num(lSQG + sSQG), pLSK * (1 - np.nan_to_num(kSKL)) + pLKS * (1 - np.nan_to_num(kKSL)) + pLKQ * (1 - np.nan_to_num(kKQL)) + pLSQ * np.nan_to_num(lSQL + sSQL)
-    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, sSKG, kKSG, kKQG, sSQG, sSKL, kKSL, kKQL, sSQL, PGR, PLR, theta, r
+    return kSKG, sKSG, lKQG, lSQG, kSKL, sKSL, lKQL, lSQL, sSKG, kKSG, kKQG, sSQG, sSKL, kKSL, kKQL, sSQL, kG, kL, PGR, PLR, theta, r
 
 def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
     list = propensities(beta,lam,delta,alpha,alphaP,eta,w,theory)
@@ -204,23 +207,18 @@ def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
     elif list[:-1] == np.nan :
         plt.text(.5,.5,r'Agent never invests at time $\tau$', horizontalalignment='center', fontsize='x-large')
     else :
-        plt.text(.18,.75,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-        plt.text(.82,.75,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-        plt.text(.18, .4, r'$\sigma_{SK}^{G} = $' + str(list[8]) + '\n'r'$\kappa_{KS}^{G} = $' + str(list[9]) + '\n' + r'$\kappa_{KQ}^{G} = $' + str(list[10]) + '\n' + r'$\sigma_{SQ}^{G} = $' + str(list[11]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-        plt.text(.82, .4, r'$\sigma_{SK}^{L} = $' + str(list[12]) + '\n'r'$\kappa_{KS}^{L} = $' + str(list[13]) + '\n' + r'$\kappa_{KQ}^{L} = $' + str(list[14]) + '\n' + r'$\sigma_{SQ}^{L} = $' + str(list[15]),horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-        plt.text(0.5, 0.1, r'$PGR=$' + str(list[16]) + '\n' + r'$PLR=$' + str(list[17]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
+        plt.text(.18,.82,r'$\kappa_{SK}^{G} = $'+str(list[0])+'\n'r'$\sigma_{KS}^{G} = $'+str(list[1])+'\n'+r'$\lambda_{KQ}^{G} = $'+str(list[2])+'\n'+r'$\lambda_{SQ}^{G} = $'+str(list[3]), horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(.82,.82,r'$\kappa_{SK}^{L} = $'+str(list[4])+'\n'r'$\sigma_{KS}^{L} = $'+str(list[5])+'\n'+r'$\lambda_{KQ}^{L} = $'+str(list[6])+'\n'+r'$\lambda_{SQ}^{L} = $'+str(list[7]), horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(.18, .5, r'$\sigma_{SK}^{G} = $' + str(list[8]) + '\n'r'$\kappa_{KS}^{G} = $' + str(list[9]) + '\n' + r'$\kappa_{KQ}^{G} = $' + str(list[10]) + '\n' + r'$\sigma_{SQ}^{G} = $' + str(list[11]),horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(.82, .5, r'$\sigma_{SK}^{L} = $' + str(list[12]) + '\n'r'$\kappa_{KS}^{L} = $' + str(list[13]) + '\n' + r'$\kappa_{KQ}^{L} = $' + str(list[14]) + '\n' + r'$\sigma_{SQ}^{L} = $' + str(list[15]),horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(.18, .25, r'$\kappa^G = $' + str(list[16]) + '\n'r'$\rho^G = $' + str(list[3]+list[11]), horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(.82, .25, r'$\kappa^L = $' + str(list[17]) + '\n'r'$\rho^L = $' + str(list[7] + list[15]), horizontalalignment='center', verticalalignment='center', fontsize='large')
+        plt.text(0.5, 0.1, r'$PGR=$' + str(list[18]) + '\n' + r'$PLR=$' + str(list[19]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
     plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+(theory=='PT' or theory=='RU')*(', '+r'$\lambda=$'+str(lam))+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+(theory=='BRN')*(', '+r'$\alpha=$'+str(alpha)+', '+r'$\alpha^\prime=$'+str(alphaP))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-2][0]) + (theory=='LEPT')*(', '+r'$r=$'+str(list[-1])))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
     #plt.savefig('name.pdf')
     plt.show()
     plt.close()
     return None
-
-
-
-
-#propensities(beta,lam,delta,alpha,eta,w, 'PT')
-
-
 
 
 #Lagged-expectations PT
