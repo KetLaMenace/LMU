@@ -3,7 +3,7 @@
 \usepackage{amsmath}
 \usepackage{accents}
 
-\title{Computing violation propensities}
+\title{Computing violation propensities, and more !}
 \author{Julien Ketabi - under the supervision of Johannes Maier}
 \date{July 2022}
 
@@ -11,37 +11,54 @@
 
 \maketitle
 
-We use the setup and notations from Maier et Fischer (2022).
+\section{Notation}
+
+Throughout this document, we use the setup and notations from Maier et Fischer (2022) and, importantly, the notation convention $XY:=X\cap Y$ for any two events $X$ and $Y$. All events considered are in the restricted universe $A\cup B$ in which an asset is bought at time $\tau$.\\
+
+However, the 2022 paper systematically decomposes events in terms of $(a,b,a',b')$ coordinates. We choose instead $(\Delta,a'-a,b'-b)$ coordinates, and decompose events only when necessary. Therefore, instead of $NPGR$, we write $p(GR)$ and instead of $DPGR$, we write $p(G)$. Note that in the following, for the sake of readability, the random variables $a'-a$ and $b'-b$ are referred to as $m$ and $j$, the letters used for the values they take. In much the same way, $\Delta$ may refer to the random variable $a-b$ or to a specific value for that random variable.
+
+
+\section{Violation propensity calculations}
+
+\subsection{When discriminating between switching and liquidating}\label{SQ}
 
 For any two investment decisions $\underaccent{\bar}{I},\bar{I}\in\{K,S,Q\}$, the propensity to make the violation $I\in\{\underaccent{\bar}{I},\bar{I}\}$ in $V_{\underaccent{\bar}{I} \bar{I}}$ in a given domain $D\in\{G,L\}$ is :
 \begin{equation}\label{main}
 \begin{split}
 i_{\underaccent{\bar}{I}\bar{I}}^D :&= p(I|DV_{\underaccent{\bar}{I} \bar{I}}) \\
-&= \frac{p(IDV_{\underaccent{\bar}{I} \bar{I}})}{p(DV_{\underaccent{\bar}{I} \bar{I}})} \\
-&= \frac{p(AIDV_{\underaccent{\bar}{I} \bar{I}}) + p(BIDV_{\underaccent{\bar}{I} \bar{I}})}{p(ADV_{\underaccent{\bar}{I} \bar{I}}) + p(BDV_{\underaccent{\bar}{I} \bar{I}})}
+&= \frac{p(\boldsymbol{I}DV_{\underaccent{\bar}{I} \bar{I}})}{p(DV_{\underaccent{\bar}{I} \bar{I}})} \\
+&= \frac{p(A\boldsymbol{I}DV_{\underaccent{\bar}{I} \bar{I}}) + p(B\boldsymbol{I}DV_{\underaccent{\bar}{I} \bar{I}})}{p(ADV_{\underaccent{\bar}{I} \bar{I}}) + p(BDV_{\underaccent{\bar}{I} \bar{I}})}
 \end{split}
 \end{equation}
 
 For instance, for an asset in $V_{SQ}$ (signaling good quality) and in gains, we get the following second-order propensity to liquidate :
-$$\lambda_{SQ}^G = \frac{p(AQGV_{SQ})+p(BQGV_{SQ})}{p(AGV_{SQ})+p(BGV_{SQ})}$$
+$$\lambda_{SQ}^G = \frac{p(A\boldsymbol{Q}GV_{SQ})+p(B\boldsymbol{Q}GV_{SQ})}{p(AGV_{SQ})+p(BGV_{SQ})}$$
 
-In order to compute these probabilities, we explicit the relevant events in $(\Delta,k,l)$ coordinates, where $k$ is the number of price increases of asset A between $\tau$ and $\tau'$, and $l$ is the same for asset B.
-The probability to be in a given state $(\Delta,k,l)$ is : $$p(\Delta,k,l)=\sum_{j=max(0,\Delta)}^{min(\tau,\tau+\Delta)}\binom{\tau}{j}\binom{j-\Delta}{\tau}\binom{n}{k}\binom{n}{l}p_a^{j+k}(1-p_a)^{\tau+n-j-k}p_b^{j-\Delta+l}(1-p_b)^{tau+n-j+\Delta-l}$$
-
-By fixing the investment decision at time $\tau$ (whether an event is in\\
-$A=[\Delta\geq\theta]$ or $B=[-\Delta\geq\theta]$), all the relevant events are easily specified in $(\Delta,k,l)$ coordinates as follows :\\
-
-For the gain/loss domains :
+In order to compute these probabilities, we explicit the relevant events in $(\Delta,m,j)$ coordinates.
+The probability to be in a given state $(\Delta,m,j)$ is :
 \begin{equation*}
 \begin{split}
-AG&=A\cap[k\geq g]\\
+p(\Delta,m,j)&=\sum_{k=0}^{\tau}\sum_{\substack{l=0\\
+k-l=\Delta}}^{\tau}\binom{\tau}{k}\binom{\tau}{l}\binom{n}{m}\binom{n}{j}p_a^{k+m}(1-p_a)^{\tau+n-k-m}p_b^{l+j}(1-p_b)^{\tau+n-l-j}\\
+&=\sum_{k=max(0,\Delta)}^{min(\tau,\tau+\Delta)}\binom{\tau}{k}\binom{\tau}{k-\Delta}\binom{n}{m}\binom{n}{j}p_a^{k+m}(1-p_a)^{\tau+n-k-m}p_b^{k-\Delta+j}(1-p_b)^{\tau+n-k+\Delta-j}
+\end{split}
+\end{equation*}
+
+By fixing the investment decision at time $\tau$ (whether an event is in\\
+$A=[\Delta\geq\theta]$ or $B=[-\Delta\geq\theta]$), all the relevant events are easily specified in $(\Delta,m,j)$ coordinates as follows :\\
+
+For the gain/loss domains :
+
+\begin{equation*}
+\begin{split}
+AG&=A\cap[m\geq g]\\
 AL&=A\setminus AG\\
-BG&=B\cap[l\geq g]\\
+BG&=B\cap[j\geq g]\\
 BL&=B\setminus BG
 \end{split}
 \end{equation*}
 
-For the benchmark events, using $\Delta' := \Delta+k-l$ :
+For the benchmark events, using $\Delta' := \Delta+m-j$ :
 \begin{equation*}
 \begin{split}
 AV_{S.}&=A\cap[\Delta'\geq0]\\
@@ -49,11 +66,80 @@ BV_{S.}&=B\cap[-\Delta'\geq0]\\
 V_{.Q}&=[|\Delta'|\geq\theta]
 \end{split}
 \end{equation*}
+
 where $V_{S.}$ is the event in which switching (as opposed to keeping) is a first-order violation, and $V_{.Q}$ is the event in which liquidating (as opposed to investing) is a second-order violation, such that each benchmark event is the intersection of $V_{S.}$ or its complementary with $V_{.Q}$ or its complementary.\\
 
 For the investment decision at time $\tau'$, the specification is given by the model considered.\\
 
-All in all, using a model with a given parametrization yields a value for $\theta$ as well as a rule for slicing the parameter space into the events $K$, $S$ and $Q$. Computing a violation propensity such as $\lambda_{SQ}^G$ then boils down to writing intersections of events in terms of $(\Delta,k,l)$ coordinates and summing the $p(\Delta,k,l)$ according to formula (\ref{main}).\\ Notice that attention can be restricted to half of the parameter space, since events in $B$ can be mapped to corresponding events in $A$ via the coordinate transormation $(k\leftrightarrow l,\Delta\rightarrow-\Delta)$. This simplifies (\ref{main}) to :
-$$\lambda_{SQ}^G = \frac{\sum_{(\Delta,k,l)\in AQ\cap AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,k,l)+p(-\Delta,l,k)}{\sum_{(\Delta,k,l)\in  AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,k,l)+p(-\Delta,l,k)}$$
+Using a utility-based model with a given parametrization yields a value for $\theta$ as well as a rule for slicing the parameter space into the events $K$, $S$ and $Q$. In belief-based models, instead of the value of $\theta$, it is the perceived $\Delta$ and $\Delta'$ which are modified in the definitions of $A$, $B$, $AV_{S.}$, $BV_{S.}$ and $V_{.Q}$.\\
+
+All in all, computing a violation propensity such as $\lambda_{SQ}^G$ then boils down to writing intersections of events in terms of $(\Delta,m,j)$ coordinates and summing the $p(\Delta,m,j)$ according to formula (\ref{main}).\\ Notice that attention can be restricted to half of the parameter space, since events in $B$ can be mapped to corresponding events in $A$ via the coordinate transormation $(m\leftrightarrow j,\Delta\rightarrow-\Delta)$. This simplifies (\ref{main}) to :
+$$\lambda_{SQ}^G = \frac{\sum_{(\Delta,m,j)\in \boldsymbol{AQ}\cap AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,m,j)+p(-\Delta,j,m)}{\sum_{(\Delta,m,j)\in  AG\cap AV_{S.}\cap V_{.Q}}p(\Delta,m,j)+p(-\Delta,j,m)}$$
+
+\subsection{When only discriminating between keeping and realizing}
+
+In this simplified framework, there are only two propensities in each domain $D\in\{G,L\}$. Note that now $V_K$ refers to the benchmark event in which keeping is the right move, while above $V_{SK}$ refers to a benchmark event in which switching or keeping is a mistake. The benchmark events are thus simply :
+
+$$AV_K = A\cap [\Delta'>=\theta]$$
+$$BV_K = B\cap [-\Delta'>=\theta]$$
+$$AV_R = A \setminus AV_K$$
+$$BV_R = B \setminus BV_K$$
+
+The gain/loss domains and investment decisions are defined like in \ref{SQ} based on the model of choice.
+
+The propensities in domain $D\in\{G,L\}$ are therefore :
+
+\begin{equation*}
+    \begin{split}
+        \kappa^D :&= p(K|DV_R)\\
+        &= \frac{p(A\boldsymbol{K}DV_R)+p(B\boldsymbol{K}DV_R)}{p(ADV_R)+p(BDV_R)}\\
+        &= \frac{\sum_{(\Delta,m,j)\in \boldsymbol{AK}\cap AD\cap AV_R}p(\Delta,m,j)+p(-\Delta,j,m)}{\sum_{(\Delta,m,j)\in  AD\cap AV_R}p(\Delta,m,j)+p(-\Delta,j,m)}\\
+        \\
+        \rho^D :&= p(R|DV_K)\\
+        &= \frac{\sum_{(\Delta,m,j)\in \boldsymbol{AR}\cap AD\cap AV_K}p(\Delta,m,j)+p(-\Delta,j,m)}{\sum_{(\Delta,m,j)\in  AD\cap AV_K}p(\Delta,m,j)+p(-\Delta,j,m)}
+    \end{split}
+\end{equation*}
+
+
+\section{Inference deformations and the disposition effect}
+
+Consider a model of Base-rate neglect or Confirmation bias. We introduce the likelyhood ratio
+\begin{equation*}
+    \begin{split}
+        \Lambda:&=\frac{p(\mbox{A went up and B did not in one time increment}|\mbox{A is the good asset})}{p(\mbox{A went up and B did not in one time increment}|\mbox{B is the good asset})}\\
+        &= \frac{p_h(1-p_l)}{(1-p_h)p_l}\in(1,+\infty)
+    \end{split}
+\end{equation*}
+The agent's inferences are made with inertia parameter $\alpha \in [0,+\infty]$ and over- or underreaction parameter $\beta \in [0,+\infty]$, according to :
+
+\begin{equation*}
+    \begin{split}
+        \frac{\hat{q}}{1-\hat{q}} &= (\frac{q_0}{1-q_0})^\alpha(\Lambda^{\beta})^\Delta\\
+        &= \Lambda^{\beta\Delta}\\
+        \\
+        \frac{\hat{q}'}{1-\hat{q}'} &= (\frac{\hat{q}}{1-\hat{q}})^\alpha(\Lambda^{\beta})^{\Delta'-\Delta}\\
+        &=\Lambda^{\beta(\Delta'+(\alpha-1)\Delta)}
+    \end{split}
+\end{equation*}
+
+which we write in terms of odds $\frac{Q}{1-Q}$ instead of probabilities $Q$. The agent has standard EUT preferences, therefore there is an indifference point $Q^{AO}\in[0,1]$ such that they invest in A for $Q\geq Q^{AO}$.
+At time $\tau$, this means A is chosen when $\Lambda^{\beta\Delta}\geq \frac{Q^{AO}}{1-Q^{AO}}$, or equivalently when $\Delta\geq \theta$ with $\theta:=\frac{log(Q^{AO})-log(1-Q^{AO})}{\beta log(\Lambda)}\in[0,+\infty]$. At time $\tau'$, we get that A is chosen whenever $\Delta'+(\alpha-1)\Delta\geq\theta$.
+
+Since $Q^{BO}=1-Q^{AO}$ with EUT preferences, we also get that B is chosen at time $\tau$ whenever $-\Delta\geq\theta$, and at time $\tau'$ whenever $-(\Delta'+(\alpha-1)\Delta)\geq\theta$.
+
+Putting all of this together, it follows that the event in which the agent realizes their asset is $R=[sign(\Delta)(\Delta'+(\alpha-1)\Delta)<\theta]$.\\
+
+Now consider an agent with extrapolative expectations, whose beliefs are modeled with extrapolation parameter $\eta\in[\frac{1}{2},1]$ as 
+\begin{equation*}
+    \begin{split}
+        \frac{\hat{q}}{1-\hat{q}} &= \Lambda^\Delta\\
+        \frac{\hat{q}'}{1-\hat{q}'} &= \Lambda^{2((1-\eta)\Delta+\eta(\Delta'-\Delta))}
+    \end{split}
+\end{equation*}
+
+We define analogously $\theta:=\frac{log(Q^{AO})-log(1-Q^{AO})}{ log(\Lambda)}\in(0,+\infty)$ such that\\ $A=[\Delta\geq\theta]$, $B=[-\Delta\geq\theta]$ and $R=[2sign(\Delta)((1-\eta)\Delta+\eta(\Delta'-\Delta))<\theta]$.
+\\
+
+With these specific forms of $R$, by the same reasoning as in the proof for proposition 1, it follows that none of these models can generate a disposition effect.
 
 \end{document}
