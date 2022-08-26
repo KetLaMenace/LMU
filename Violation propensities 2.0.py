@@ -1,28 +1,37 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+#model of choice
+theory = 'BMR'
+#PT=prospect theory ; LEPT=lagged-expectations PT ; RU=Realization utiliry ; BRN=Base-rate neglect for alpha<1, EUT for alpha==1 and Confirmation bias for alpha>1
+#EE = Extrapolative expectations ; BMR = Belief in mean reversion ; D = Disappoinntment models
+
+#stochastic environment
 tau = 2
 n = 4
 ph = .55
 pl = .45
-u = 1.25
+u = 1.21
 d = .8
 
 w = 1.1
-beta = .9
-lam = 3
-delta = .5
-alpha = 0.5
-alphaP = 1
-eta = 1
 
-#probability tensor with numpy and brains, still partly unexplained
+#model parameters
+beta = .9               #diminishing sensitivity
+lam = 1.2               #loss averison
+delta = .5              #discount factor for RU
+alpha = 1.5             #BRN exponent of the prior
+alphaP = 1              #BRN exponent of the posterior (irrelevant to the disposition effect, keep at 1) (named beta in the paper)
+eta = 1                 #EE parameter (named theta in the paper)
+betaP = .9              #diminishing sensitivity of the "u" term of the utility in Disappointment models (named alpha in the paper)
+
+#probability tensor
 #index [k,l,kk,ll] means k (kk) ups for the good asset at time tau (between tau and tau'), and l (ll) for the bad asset
 tau_list = np.arange(tau + 1)
 n_list = np.arange(n + 1)
 L, K, KK, LL = np.meshgrid(tau_list, tau_list, n_list, n_list)
 Del, DelP = K - L, K + KK - L - LL
-#UNEXPLAINED : when meshing into a dimension>2, the first 2 indices appear to be switched
 P = np.ones((tau + 1, tau + 1, n + 1, n + 1))
 for i in tau_list[1:]:
     P[i, :, :, :] = (P[i - 1, :, :, :] * (tau - i + 1)) / i
@@ -40,7 +49,7 @@ def wealth(t, ups):
 
 W_vector = wealth(n, n_list)
 L, K, Wh, Wl = np.meshgrid(tau_list, tau_list, W_vector, W_vector)
-#Wh is the relative wealth variation at tau' after investing in the good asset
+#Wh is the relative wealth variation at tau' after investing in the good asset, Wl after investing in the bad
 E_Wh = (P * Wh).sum()
 E_Wl = (P * Wl).sum()
 Wlottery = (Wh + Wl) / 2
@@ -61,7 +70,7 @@ print('g = '+str(g))
 #getting theta from Q^AO aka "thetifying" the q
 def thetify(q, pa, pb):
     infinity = max(tau + 1, n + 1)
-    #we send large thetas to infinity and negative ones to 0 so that the investor behavior is consistent
+    #we send large thetas to infinity and negative ones to 0 so that the investor behavior be consistent
     return (q > .5) * (q < 1) * np.ceil(np.log(abs(q / (1 - q))) / np.log(pa * (1 - pb) / pb / (1 - pa))) + (q <= .5) * 0 + (q >= 1) * infinity
 
 
@@ -75,15 +84,13 @@ def E(L, p):  ##L is the array of values X, or an array of line arrays Xi
     for ups in range(length_X) :
         sum += L[:, ups] * binom * p ** ups * (1 - p) ** (length_X - 1 - ups)
         binom = (binom * (length_X - 1 - ups)) / (ups + 1)
-    sum = sum
     return sum  ##return is the array [E(Xi)]
 
-print(E(np.ones(500),.1))
 
 #PT utility
 def v(y, beta, lam):
     return np.abs(y) ** beta * (-lam * (y < 0) + (y > 0))
-#As v is self-similar, we could ditch the variable w completely. We choose to keep it so that more general utility forms can be added easily, and set w=1 in all computations
+#As v is self-similar, we could ditch the variable w completely. We choose to keep it so that more general utility forms can be added easily
 
 
 def QAOtau(beta, lam, w, r):
@@ -94,11 +101,11 @@ def QAOtauP(beta, lam, w, c, r):
     Utility_tensor = v(np.outer(w + c, W_vector) - r, beta, lam)
     return (v(w + c - r, beta, lam) - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
 
-#PT and RU
 
 def QAOtauP_RU(beta, lam, delta, w, c):
     Utility_tensor = v(np.outer(w + c, W_vector) - w, beta, lam)
     return (v(c, beta, lam)/delta - E(Utility_tensor, pl)) / (E(Utility_tensor, ph) - E(Utility_tensor, pl))
+
 
 def propensities(beta, lam, delta, alpha, alphaP, eta, w, theory) :
     r=0
@@ -214,7 +221,7 @@ def propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory) :
         plt.text(.18, .25, r'$\kappa^G = $' + str(list[16]) + '\n'r'$\rho^G = $' + str(list[3]+list[11]), horizontalalignment='center', verticalalignment='center', fontsize='large')
         plt.text(.82, .25, r'$\kappa^L = $' + str(list[17]) + '\n'r'$\rho^L = $' + str(list[7] + list[15]), horizontalalignment='center', verticalalignment='center', fontsize='large')
         plt.text(0.5, 0.1, r'$PGR=$' + str(list[18]) + '\n' + r'$PLR=$' + str(list[19]), horizontalalignment='center', verticalalignment='center', fontsize='x-large')
-    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+(theory=='PT' or theory=='RU')*(', '+r'$\lambda=$'+str(lam))+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+(theory=='BRN')*(', '+r'$\alpha=$'+str(alpha)+', '+r'$\alpha^\prime=$'+str(alphaP))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-2][0]) + (theory=='LEPT')*(', '+r'$r=$'+str(list[-1])))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
+    plt.text(0.5,.01,'Model parameters : '+r'$\beta=$'+str(beta)+(theory=='PT' or theory=='RU' or theory=='LEPT')*(', '+r'$\lambda=$'+str(lam))+(theory=='RU')*(', '+r'$\delta=$'+str(delta))+(theory=='EE')*(', '+r'$\eta=$'+str(eta))+(theory=='BRN')*(', '+r'$\alpha=$'+str(alpha)+', '+r'$\alpha^\prime=$'+str(alphaP))+'\nStochastic environment : '+r'$\tau=$'+str(tau)+', '+r'$n=$'+str(n)+' '+r'$p_h=$'+str(ph)+', '+r'$p_l=$'+str(pl)+', '+r'$u=$'+str(u)+', '+r'$d=$'+str(d) + ('\n'+r'$\theta=$'+str(list[-2][0]) + (theory=='LEPT')*(', '+r'$r=$'+str(list[-1])))*(type(list)!=str), horizontalalignment='center', verticalalignment='top')
     #plt.savefig('name.pdf')
     plt.show()
     plt.close()
@@ -278,13 +285,9 @@ def draw_f(beta, lam, w, r_min, r_max):
     ax.set_ylabel(r'$r_{posterior}$')
     ax.set_title('Expected wealth given a fixed reference point')
     ax.legend(numpoints=30)
-    # mask = (np.abs(Y[1:-1]-X[1:-1])<(1-Z)*(step))*(np.abs(Z)<1)
-    # Attractors = np.trim_zeros(X[1:-1]*mask)
-    # Attractors = [r for r in Attractors if r!=0]
-    # ax.text(r_max+.1*(r_max-r_min),.5*(r_max+r_min)/2,'Attractors : '+str(Attractors),rotation=-90,horizontalalignment='left', verticalalignment='center', fontsize='large')
     plt.show()
     plt.close()
-    # return Attractors
+    return None
 
 def ref_point(beta, lam, w) :
     start = 3
@@ -304,9 +307,41 @@ def ref_point(beta, lam, w) :
     if abs(f(beta,lam,w,w)-w)<1e-14 :
         return w
 
+#Disappointment models
+
+def uA(Q,beta,lam,betaP) :
+    EA = Q*E(W_vector**betaP,ph) + (1-Q)*E(W_vector**betaP,pl)
+    result = EA + Q*E(v(W_vector**betaP-EA,beta,lam),ph) + (1-Q)*E(v(W_vector**betaP-EA,beta,lam),pl)
+    return result[0]
+
+
+def uA_disp(beta,lam,betaP) :
+    N = 1000
+    Q = [.5*(1+i/(N-1)) for i in range(N)]
+    U = [uA(q,beta,lam,betaP) for q in Q]
+    plt.clf()
+    plt.plot(Q,U)
+    plt.show()
+    return None
+
+def QAOtauP_D(beta,lam,betaP) :
+    a = uA(.5,beta,lam,betaP)
+    b = uA(1,beta,lam,betaP)
+    if a>=1 :
+        return .5
+    elif b<=1 :
+        return 1
+    slope = 2*(b-a)
+    q=.5
+    while abs(a-1)>1e-15 :
+        q = q + (1-a)/slope
+        a = uA(q,beta,lam,betaP)
+    return q
 
 
 
-draw_f(beta, lam, w, w, 3)
-print(ref_point(beta,lam,w))
-propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, 'LEPT')
+
+uA_disp(beta,lam,betaP)
+print(QAOtauP_D(beta,lam,betaP))
+
+#propensities_disp(beta,lam,delta,alpha,alphaP,eta,w, theory)
