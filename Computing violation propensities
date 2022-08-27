@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{accents}
 
 \title{Computing violation propensities, and more !}
@@ -15,7 +16,7 @@
 
 Throughout this document, we use the setup and notations from Maier et Fischer (2022) and, importantly, the notation convention $XY:=X\cap Y$ for any two events $X$ and $Y$. All events considered are in the restricted universe $A\cup B$ in which an asset is bought at time $\tau$.\\
 
-However, the 2022 paper systematically decomposes events in terms of $(a,b,a',b')$ coordinates. We choose instead $(\Delta,a'-a,b'-b)$ coordinates, and decompose events only when necessary. Therefore, instead of $NPGR$, we write $p(GR)$ and instead of $DPGR$, we write $p(G)$. Note that in the following, for the sake of readability, the random variables $a'-a$ and $b'-b$ are referred to as $m$ and $j$, the letters used for the values they take. In much the same way, $\Delta$ may refer to the random variable $a-b$ or to a specific value for that random variable.
+However, the 2022 paper systematically decomposes events in terms of $(a,b,a',b')$ coordinates. We choose instead $(\Delta,a'-a,b'-b)$ coordinates, and decompose events only when necessary. Therefore, instead of $NPGR$, we write $p(GR)$ and instead of $DPGR$, we write $p(G)$. Note that in the following, for the sake of readability, the random variables $a'-a$ and $b'-b$ are referred to as $m$ and $j$, the letters used for the values they take. The events $[a'-a=m]$ and $[b'-b=j]$ for integers $m,j$ are also simply referred to as $m$ and $j$. In much the same way, $\Delta$ may refer to the random variable $a-b$, to a specific value for that random variable, or to the event $[a-b=\Delta]$.
 
 
 \section{Violation propensity calculations}
@@ -140,6 +141,35 @@ Now consider an agent with extrapolative expectations, whose beliefs are modeled
 We define analogously $\theta:=\frac{log(Q^{AO})-log(1-Q^{AO})}{ log(\Lambda)}\in(0,+\infty)$ such that\\ $A=[\Delta\geq\theta]$, $B=[-\Delta\geq\theta]$ and $R=[2sign(\Delta)((1-\eta)\Delta+\eta(\Delta'-\Delta))<\theta]$.
 \\
 
-With these specific forms of $R$, by the same reasoning as in the proof for proposition 1, it follows that none of these models can generate a disposition effect.
+Once fully parametrized, these models' predicted behaviour is thus encapsulated in a realizing event of the form $R=[sign(\Delta)\nu(m-j)+\phi(\Delta)<\theta]$ with fixed $\nu,\theta\in\mathbb{R}_+^*$, and real-valued function $\phi$.
+With these specific forms of $R$, by the same reasoning as in the proof for proposition 1, it follows that none of these models can generate a disposition effect. Indeed, let us define for any $\Delta\geq\theta$ and $m\in[\![0,n]\!]$ :
+
+\begin{equation*}
+\begin{split}
+\beta_{\Delta,m} :&= p(m|\Delta)\\
+\\
+\alpha_{\Delta,m} :&= p(m\cap R|\Delta)\\
+&= p(R|m,\Delta)\beta_{\Delta,m}\\
+&= p(j>m+\frac{\phi(\Delta)-\theta}{\nu})\beta_{\Delta,m}
+\end{split}    
+\end{equation*}
+
+We now fix $\Delta\geq\theta$. It is clear that $\frac{\alpha_{\Delta,m}}{\beta_{\Delta,m}}$ is decreasing in $m$.
+
+Let us first assume that the sequence is decreasing with at least one strict inequality. By Lemma 4, we therefore obtain
+$$\frac{\sum_{m=0}^{g-1}\alpha_{\Delta,m}}{\sum_{m=0}^{g-1}\beta_{\Delta,m}}>\frac{\sum_{m=g}^n\alpha_{\Delta,m}}{\sum_{m=g}^n\beta_{\Delta,m}}$$
+In other words,
+$$\frac{\sum_{m=0}^{g-1}p(m\cap R|\Delta)}{\sum_{m=0}^{g-1}p(m|\Delta)}>\frac{\sum_{m=g}^np(m\cap R|\Delta)}{\sum_{m=g}^np(m|\Delta)}$$
+Hence
+$$\frac{p(LR|\Delta)}{p(L|\Delta)}>\frac{p(GR|\Delta)}{p(G|\Delta)}$$
+Or equivalently $$(PLR|\Delta)>(PGR|\Delta)$$
+
+Let us now assume that $\frac{\alpha_{\Delta,m}}{\beta_{\Delta,m}}(=p(j>m+\frac{\phi(\Delta)-\theta}{\nu}))$ is constant. Since $\forall j\in[\![0,n]\!],p(j)\neq0$, this means that $\frac{\alpha_{\Delta,m}}{\beta_{\Delta,m}}$ is either 0 or 1 for all values of m. By repeating the same steps as above, we arrive at either $(PLR|\Delta)=(PGR|\Delta)=0$ or $(PLR|\Delta)=(PGR|\Delta)=1$.\\
+
+In all cases, we get the desired result $(PLR|\Delta)\geq(PGR|\Delta)$.
+
+For $\Delta\leq-\theta$, we define analogously $\beta_{\Delta,j} := p(j|\Delta)$ and $\alpha_{\Delta,j} := p(j\cap R|\Delta)$ for all $j\in[\![0,n]\!]$. Due to the factor $sign(\Delta)$ in front of $m-j$ in the realizing event R, we can write $\alpha_{\Delta,j}=p(m>j+\frac{\phi(\Delta)-\theta}{\nu})\beta_{\Delta,j}$ and the proof is identical.
+
+$\hfill \blacksquare$
 
 \end{document}
